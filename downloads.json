@@ -2,8 +2,8 @@
   "software": {
     "multiviewer": {
       "name": "MultiViewer",
-      "count": 9,
-      "lastDownload": "2026-02-28T20:00:07.782Z",
+      "count": 10,
+      "lastDownload": "2026-03-02T01:04:28.821Z",
       "history": [
         {
           "ip": "127.0.0.1",
@@ -58,13 +58,19 @@
           "timestamp": "2026-02-28T20:00:07.782Z",
           "country": null,
           "city": null
+        },
+        {
+          "ip": "127.0.0.1",
+          "timestamp": "2026-03-02T01:04:28.821Z",
+          "country": null,
+          "city": null
         }
       ]
     },
     "ledlogger": {
       "name": "LED Logger",
-      "count": 5,
-      "lastDownload": "2026-02-28T17:38:44.458Z",
+      "count": 6,
+      "lastDownload": "2026-03-02T01:04:29.919Z",
       "history": [
         {
           "ip": "127.0.0.1",
@@ -93,6 +99,12 @@
         {
           "ip": "127.0.0.1",
           "timestamp": "2026-02-28T17:38:44.458Z",
+          "country": null,
+          "city": null
+        },
+        {
+          "ip": "127.0.0.1",
+          "timestamp": "2026-03-02T01:04:29.919Z",
           "country": null,
           "city": null
         }
