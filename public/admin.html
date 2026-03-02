@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiViewer - Admin</title>
+    <link rel="icon" type="image/x-icon" href="logo.ico">
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <div id="loginForm" class="login-box">
+            <h1>Admin Panel</h1>
+            <p>Enter Password</p>
+            <input 
+                type="password" 
+                id="passwordInput" 
+                placeholder="Password"
+                @keypress="if(event.key==='Enter') login()"
+            >
+            <button onclick="login()" class="login-btn">Login</button>
+            <p class="hint">Default password: <code>admin123</code></p>
+        </div>
+
+        <div id="adminPanel" class="admin-panel" style="display: none;">
+            <header class="admin-header">
+                <h1>MultiViewer Admin Panel</h1>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </header>
+
+            <main class="admin-content">
+                <!-- Download Stats -->
+                <section class="stat-section">
+                    <h2>Download Statistics</h2>
+                    <div id="statsContainer" class="stats-grid">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                </section>
+
+                <!-- Download History -->
+                <section class="stat-section">
+                    <h2>Recent Downloads</h2>
+                    <div id="historyContainer" style="overflow-x: auto;">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Software</th>
+                                    <th>IP Address</th>
+                                    <th>Country / City</th>
+                                    <th>Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Actions -->
+                <section class="action-section">
+                    <h2>Settings</h2>
+                    <div class="action-box">
+                        <button onclick="resetCounter()" class="danger-btn">
+                            Reset All Counters
+                        </button>
+                        <p class="info-text">Set all download counts to 0</p>
+                    </div>
+                </section>
+
+                <!-- Info -->
+                <section class="info-section">
+                    <h2>Information</h2>
+                    <div class="info-box">
+                        <p><strong>Change Password:</strong> You can do this in <code>server.js</code>, where <code>ADMIN_PASSWORD</code> is located.</p>
+                        <p><strong>Hide Counter:</strong> By default, visitors do NOT see the download count. Only you see it here.</p>
+                        <p><strong>Auto-refresh:</strong> Stats are refreshed every 5 seconds.</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>

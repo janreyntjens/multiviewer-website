@@ -1,0 +1,13 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#00d4ff" stroke-width="2"/>
+  
+  <!-- Multi squares representing viewers -->
+  <rect x="40" y="40" width="45" height="45" fill="none" stroke="#00d4ff" stroke-width="2.5" rx="5"/>
+  <rect x="115" y="40" width="45" height="45" fill="none" stroke="#00d4ff" stroke-width="2.5" rx="5"/>
+  <rect x="40" y="115" width="45" height="45" fill="none" stroke="#00d4ff" stroke-width="2.5" rx="5"/>
+  <rect x="115" y="115" width="45" height="45" fill="none" stroke="#00d4ff" stroke-width="2.5" rx="5"/>
+  
+  <!-- Center dot -->
+  <circle cx="100" cy="100" r="3" fill="#00d4ff"/>
+</svg>

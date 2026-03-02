@@ -1,0 +1,17 @@
+{
+  "name": "multiviewer-download-site",
+  "version": "1.0.0",
+  "description": "Download site for multiviewer software",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["multiviewer", "download"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
