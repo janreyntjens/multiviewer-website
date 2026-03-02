@@ -7,7 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // Handle download for specific software
 async function downloadSoftware(softwareId) {
   try {
-    // Send download event to server
+    // Define download URLs for each software
+    const downloadUrls = {
+      'multiviewer': 'https://github.com/janreyntjens/multiviewer-website/releases/download/v1.0.3/Multiviewer_V_1.0.3.exe',
+      'ledlogger': '#' // Update this later with LED Logger URL
+    };
+
+    // Start the actual file download
+    if (downloadUrls[softwareId] && downloadUrls[softwareId] !== '#') {
+      window.location.href = downloadUrls[softwareId];
+    }
+
+    // Send download event to server for tracking
     const response = await fetch(`/api/download/${softwareId}`, {
       method: 'POST',
       headers: {
