@@ -44,6 +44,15 @@ De website is nu beschikbaar op: **http://localhost:3000**
 - Het aantal downloads wordt opgeslagen in `downloads.json`
 - De teller wordt live bijgewerkt
 
+## 🔐 Admin wachtwoord
+
+Zet je admin wachtwoord in `.env`:
+```env
+ADMIN_PASSWORD=jouw-sterke-wachtwoord
+```
+
+De admin pagina staat op: **http://localhost:3000/admin**
+
 ## 🔧 Je Software Toevoegen
 
 ### Download Link Toevoegen

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,7 +37,7 @@ function initializeDownloadsFile() {
 }
 
 // Admin password
-const ADMIN_PASSWORD = 'admin123'; // IMPORTANT: Change this!
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'JacksonU79m!';
 
 // Admin authentication check
 function checkAdmin(req) {

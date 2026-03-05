@@ -53,16 +53,16 @@ The website is now available at: **http://localhost:3000**
 ## 🔐 Admin Panel
 
 Go to **http://localhost:3000/admin**
-- **Default Password**: `admin123`
+- **Password**: the value configured in `.env` as `ADMIN_PASSWORD`
 - View total downloads
 - See last download timestamp
 - Reset counter
 
 ## 🔑 Change Admin Password
 
-Open [server.js](server.js) and change:
-```javascript
-const ADMIN_PASSWORD = 'admin123'; // Your password
+Open `.env` and change:
+```env
+ADMIN_PASSWORD=your-secure-password
 ```
 
 ## 🔧 Add Your Software
