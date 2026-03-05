@@ -158,6 +158,8 @@ section h2 {
     border: 2px solid rgba(0, 212, 255, 0.2);
     transition: all 0.3s ease;
     text-align: center;
+    display: flex;
+    flex-direction: column;
 }
 
 .software-card:hover {
@@ -177,6 +179,7 @@ section h2 {
     color: var(--text-lighter);
     margin-bottom: 20px;
     min-height: 40px;
+    flex-grow: 1;
 }
 
 .download-box h2 {
