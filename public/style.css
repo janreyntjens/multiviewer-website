@@ -215,7 +215,7 @@ section h2 {
 }
 
 .readme-btn {
-    display: inline-block;
+    display: block;
     margin-top: 10px;
     padding: 8px 25px;
     font-size: 0.9rem;
@@ -225,6 +225,7 @@ section h2 {
     text-decoration: none;
     transition: all 0.3s ease;
     cursor: pointer;
+    text-align: center;
 }
 
 .readme-btn:hover {
@@ -234,15 +235,15 @@ section h2 {
 }
 
 .coming-soon {
-    display: inline-block;
+    display: block;
     margin-top: 10px;
     padding: 8px 25px;
     font-size: 0.9rem;
     border-radius: 8px;
     color: var(--text-lighter);
-    opacity: 0.6;
-    background-color: rgba(150, 150, 150, 0.15);
-    border: 1px solid rgba(150, 150, 150, 0.3);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    background-color: rgba(0, 212, 255, 0.08);
+    text-align: center;
 }
 
 .download-info {
