@@ -206,6 +206,10 @@ section h2 {
     font-weight: bold;
     letter-spacing: 1px;
     text-transform: uppercase;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .download-btn:hover {
