@@ -233,6 +233,18 @@ section h2 {
     background-color: rgba(0, 212, 255, 0.1);
 }
 
+.coming-soon {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 25px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    color: var(--text-lighter);
+    opacity: 0.6;
+    background-color: rgba(150, 150, 150, 0.15);
+    border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
 .download-info {
     margin-top: 20px;
     font-size: 0.95rem;
