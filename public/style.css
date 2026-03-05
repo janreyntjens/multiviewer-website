@@ -197,7 +197,7 @@ section h2 {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
     border: none;
-    padding: 15px 5px;
+    padding: 15px 10px;
     font-size: 1.1rem;
     border-radius: 12px;
     cursor: pointer;
@@ -206,10 +206,8 @@ section h2 {
     font-weight: bold;
     letter-spacing: 1px;
     text-transform: uppercase;
-    width: fit-content;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    margin: 0 auto;
 }
 
 .download-btn:hover {
