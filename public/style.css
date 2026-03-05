@@ -215,13 +215,14 @@ section h2 {
 }
 
 .readme-btn {
-    display: block;
+    display: inline-block;
     margin-top: 10px;
-    padding: 8px 25px;
-    font-size: 0.9rem;
+    padding: 6px 20px;
+    font-size: 0.85rem;
     border: 1px solid rgba(0, 212, 255, 0.4);
-    border-radius: 8px;
+    border-radius: 6px;
     color: var(--text-lighter);
+    background-color: rgba(0, 0, 0, 0.3);
     text-decoration: none;
     transition: all 0.3s ease;
     cursor: pointer;
@@ -235,14 +236,14 @@ section h2 {
 }
 
 .coming-soon {
-    display: block;
+    display: inline-block;
     margin-top: 10px;
-    padding: 8px 25px;
-    font-size: 0.9rem;
-    border-radius: 8px;
+    padding: 6px 20px;
+    font-size: 0.85rem;
+    border-radius: 6px;
     color: var(--text-lighter);
     border: 1px solid rgba(0, 212, 255, 0.4);
-    background-color: rgba(0, 212, 255, 0.08);
+    background-color: rgba(0, 0, 0, 0.3);
     text-align: center;
 }
 
