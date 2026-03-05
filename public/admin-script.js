@@ -5,6 +5,27 @@ function getSoftwareLabel(softwareKey) {
     return softwareKey === 'multiviewer' ? 'MultiViewer' : 'LED Logger';
 }
 
+function isPrivateOrLocalIp(ip) {
+    if (!ip) {
+        return true;
+    }
+
+    const normalizedIp = ip.toString().trim().toLowerCase();
+    return (
+        normalizedIp === '127.0.0.1' ||
+        normalizedIp === 'localhost' ||
+        normalizedIp === '::1' ||
+        normalizedIp.startsWith('10.') ||
+        /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./.test(normalizedIp) ||
+        normalizedIp.startsWith('192.168.') ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(normalizedIp) ||
+        normalizedIp.startsWith('169.254.') ||
+        normalizedIp.startsWith('fc') ||
+        normalizedIp.startsWith('fd') ||
+        normalizedIp.startsWith('fe80:')
+    );
+}
+
 // Login
 function login() {
     const password = document.getElementById('passwordInput').value;
@@ -39,9 +60,9 @@ function logout() {
 
 // Get geolocation from IP
 async function getGeoLocation(ip) {
-    // Handle localhost IPs
-    if (ip === '127.0.0.1' || ip === 'localhost' || ip === '::1') {
-        return 'Local / Testing';
+    // Private and localhost IPs are not geolocatable via public IP services
+    if (isPrivateOrLocalIp(ip)) {
+        return 'Local Network / Private IP';
     }
     
     if (geoCache[ip]) {
@@ -49,17 +70,26 @@ async function getGeoLocation(ip) {
     }
     
     try {
-        const response = await fetch(`https://ipapi.co/${ip}/json/`);
-        const data = await response.json();
-        
-        if (!data || !data.country_name) {
-            geoCache[ip] = 'Unknown';
-            return 'Unknown';
+        const ipApiResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+        const ipApiData = await ipApiResponse.json();
+
+        if (ipApiData && ipApiData.country_name) {
+            const location = `${ipApiData.country_name} / ${ipApiData.city || 'N/A'}`;
+            geoCache[ip] = location;
+            return location;
         }
-        
-        const location = `${data.country_name} / ${data.city || 'N/A'}`;
-        geoCache[ip] = location;
-        return location;
+
+        const fallbackResponse = await fetch(`https://ipwho.is/${ip}`);
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData && fallbackData.success && fallbackData.country) {
+            const fallbackLocation = `${fallbackData.country} / ${fallbackData.city || 'N/A'}`;
+            geoCache[ip] = fallbackLocation;
+            return fallbackLocation;
+        }
+
+        geoCache[ip] = 'Unknown (provider unavailable)';
+        return 'Unknown (provider unavailable)';
     } catch (error) {
         console.error('Geolocation error:', error);
         geoCache[ip] = 'Unable to locate';

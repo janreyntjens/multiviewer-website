@@ -7,6 +7,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -45,15 +47,53 @@ function checkAdmin(req) {
   return password === ADMIN_PASSWORD;
 }
 
+function getClientIp(req) {
+  const possibleHeaders = [
+    req.headers['cf-connecting-ip'],
+    req.headers['x-real-ip'],
+    req.headers['x-vercel-forwarded-for'],
+    req.headers['x-forwarded-for']
+  ];
+
+  for (const rawHeaderValue of possibleHeaders) {
+    if (!rawHeaderValue) {
+      continue;
+    }
+
+    const value = Array.isArray(rawHeaderValue) ? rawHeaderValue[0] : rawHeaderValue;
+    if (!value) {
+      continue;
+    }
+
+    let ip = value.toString().split(',')[0].trim();
+
+    if (ip.startsWith('::ffff:')) {
+      ip = ip.replace('::ffff:', '');
+    }
+
+    if (ip === '::1') {
+      ip = '127.0.0.1';
+    }
+
+    if (ip) {
+      return ip;
+    }
+  }
+
+  let fallbackIp = (req.ip || req.socket.remoteAddress || 'Unknown').toString().trim();
+  if (fallbackIp.startsWith('::ffff:')) {
+    fallbackIp = fallbackIp.replace('::ffff:', '');
+  }
+  if (fallbackIp === '::1') {
+    fallbackIp = '127.0.0.1';
+  }
+  return fallbackIp;
+}
+
 // Increment download counter (public)
 app.post('/api/download/:software', (req, res) => {
   const software = req.params.software;
-  let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
-  
-  // Convert IPv6 localhost to IPv4
-  if (clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
-    clientIp = '127.0.0.1';
-  }
+  const clientIp = getClientIp(req);
   
   initializeDownloadsFile();
   const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
