@@ -130,6 +130,51 @@ app.get('/api/admin/history/:software', (req, res) => {
   res.json(history);
 });
 
+// Admin: Delete one download history entry
+app.delete('/api/admin/history/:software/:index', (req, res) => {
+  if (!checkAdmin(req)) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  const software = req.params.software;
+  const index = Number.parseInt(req.params.index, 10);
+
+  if (!Number.isInteger(index) || index < 0) {
+    return res.status(400).json({ error: 'Invalid index' });
+  }
+
+  initializeDownloadsFile();
+  const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+
+  if (!data.software[software]) {
+    return res.status(404).json({ error: 'Software not found' });
+  }
+
+  if (!data.software[software].history) {
+    data.software[software].history = [];
+  }
+
+  if (index >= data.software[software].history.length) {
+    return res.status(404).json({ error: 'History entry not found' });
+  }
+
+  data.software[software].history.splice(index, 1);
+  data.software[software].count = Math.max(0, data.software[software].history.length);
+
+  if (data.software[software].history.length === 0) {
+    data.software[software].lastDownload = null;
+  } else {
+    const latestTimestamp = data.software[software].history
+      .map(item => item.timestamp)
+      .sort()
+      .pop();
+    data.software[software].lastDownload = latestTimestamp || null;
+  }
+
+  fs.writeFileSync(downloadsFile, JSON.stringify(data, null, 2));
+  res.json({ success: true, message: 'History entry deleted' });
+});
+
 // Serve admin page
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));

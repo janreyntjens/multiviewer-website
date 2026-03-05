@@ -360,3 +360,18 @@ section h2 {
 .history-table tbody tr:hover {
     background-color: rgba(0, 212, 255, 0.05);
 }
+
+.delete-log-btn {
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.delete-log-btn:hover {
+    opacity: 0.85;
+}

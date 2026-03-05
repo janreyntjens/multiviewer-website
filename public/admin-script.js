@@ -1,6 +1,10 @@
 let adminPassword = null;
 const geoCache = {}; // Cache geolocation results
 
+function getSoftwareLabel(softwareKey) {
+    return softwareKey === 'multiviewer' ? 'MultiViewer' : 'LED Logger';
+}
+
 // Login
 function login() {
     const password = document.getElementById('passwordInput').value;
@@ -123,18 +127,22 @@ async function loadHistory() {
         
         if (multiviewerResponse.ok) {
             const multiviewerHistory = await multiviewerResponse.json();
-            const multiviewerData = multiviewerHistory.map(item => ({
+            const multiviewerData = multiviewerHistory.map((item, index) => ({
                 ...item,
-                software: 'MultiViewer'
+                software: 'MultiViewer',
+                softwareKey: 'multiviewer',
+                historyIndex: index
             }));
             allDownloads = allDownloads.concat(multiviewerData);
         }
         
         if (ledloggerResponse.ok) {
             const ledloggerHistory = await ledloggerResponse.json();
-            const ledloggerData = ledloggerHistory.map(item => ({
+            const ledloggerData = ledloggerHistory.map((item, index) => ({
                 ...item,
-                software: 'LED Logger'
+                software: 'LED Logger',
+                softwareKey: 'ledlogger',
+                historyIndex: index
             }));
             allDownloads = allDownloads.concat(ledloggerData);
         }
@@ -146,7 +154,7 @@ async function loadHistory() {
         allDownloads = allDownloads.slice(0, 20);
         
         if (allDownloads.length === 0) {
-            historyBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No downloads yet</td></tr>';
+            historyBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No downloads yet</td></tr>';
             return;
         }
         
@@ -162,6 +170,11 @@ async function loadHistory() {
                     <td>${download.ip}</td>
                     <td>${location}</td>
                     <td>${date}</td>
+                    <td>
+                        <button class="delete-log-btn" onclick="deleteHistoryItem('${download.softwareKey}', ${download.historyIndex})">
+                            Delete
+                        </button>
+                    </td>
                 </tr>
             `;
         }
@@ -169,6 +182,41 @@ async function loadHistory() {
         historyBody.innerHTML = html;
     } catch (error) {
         console.error('Error loading history:', error);
+    }
+}
+
+// Delete one history item
+async function deleteHistoryItem(softwareKey, index) {
+    const softwareLabel = getSoftwareLabel(softwareKey);
+    if (!confirm(`Delete this ${softwareLabel} download log?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/history/${softwareKey}/${index}`, {
+            method: 'DELETE',
+            headers: {
+                'x-admin-password': adminPassword
+            }
+        });
+
+        if (response.status === 403) {
+            alert('Incorrect password');
+            logout();
+            return;
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert(errorData.error || 'Could not delete log');
+            return;
+        }
+
+        loadStats();
+        loadHistory();
+    } catch (error) {
+        console.error('Error deleting history item:', error);
+        alert('Error deleting log');
     }
 }
 
