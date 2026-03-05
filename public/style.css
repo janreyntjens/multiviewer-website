@@ -197,7 +197,7 @@ section h2 {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
     border: none;
-    padding: 15px 40px;
+    padding: 12px 30px;
     font-size: 1.1rem;
     border-radius: 12px;
     cursor: pointer;
