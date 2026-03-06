@@ -21,6 +21,11 @@ html {
 
 body {
     background-color: var(--bg-dark);
+    background-image: linear-gradient(rgba(5, 10, 20, 0.78), rgba(5, 10, 20, 0.78)), url("Background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--text-light);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
