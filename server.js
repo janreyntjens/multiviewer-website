@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const { Redis } = require('@upstash/redis');
 require('dotenv').config();
 
 const app = express();
@@ -15,27 +16,117 @@ app.use(express.static('public'));
 
 // Downloads data file
 const downloadsFile = path.join(__dirname, 'downloads.json');
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const DOWNLOADS_REDIS_KEY = process.env.DOWNLOADS_REDIS_KEY || 'multiviewer:downloads';
+
+const redis = REDIS_URL && REDIS_TOKEN
+  ? new Redis({
+      url: REDIS_URL,
+      token: REDIS_TOKEN
+    })
+  : null;
+
+function createDefaultData() {
+  return {
+    software: {
+      multiviewer: {
+        name: 'MultiViewer',
+        count: 0,
+        lastDownload: null,
+        history: []
+      },
+      ledlogger: {
+        name: 'LED Logger',
+        count: 0,
+        lastDownload: null,
+        history: []
+      }
+    }
+  };
+}
 
 // Ensure downloads.json file exists
 function initializeDownloadsFile() {
   if (!fs.existsSync(downloadsFile)) {
-    fs.writeFileSync(downloadsFile, JSON.stringify({ 
-      software: {
-        multiviewer: { 
-          name: 'MultiViewer', 
-          count: 0, 
-          lastDownload: null,
-          history: []
-        },
-        ledlogger: { 
-          name: 'LED Logger', 
-          count: 0, 
-          lastDownload: null,
-          history: []
-        }
-      }
-    }, null, 2));
+    fs.writeFileSync(downloadsFile, JSON.stringify(createDefaultData(), null, 2));
   }
+}
+
+function readLocalDownloadsData() {
+  initializeDownloadsFile();
+  const fileData = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+  return normalizeData(fileData);
+}
+
+function normalizeData(inputData) {
+  const fallbackData = createDefaultData();
+
+  if (!inputData || typeof inputData !== 'object' || Array.isArray(inputData)) {
+    return fallbackData;
+  }
+
+  const data = inputData;
+  if (!data.software || typeof data.software !== 'object' || Array.isArray(data.software)) {
+    data.software = {};
+  }
+
+  for (const [softwareKey, defaults] of Object.entries(fallbackData.software)) {
+    const current = data.software[softwareKey] || {};
+
+    const history = Array.isArray(current.history)
+      ? current.history
+          .filter(item => item && typeof item === 'object')
+          .map(item => ({
+            ip: item.ip || 'Unknown',
+            timestamp: item.timestamp || null,
+            country: item.country || null,
+            city: item.city || null
+          }))
+      : [];
+
+    data.software[softwareKey] = {
+      name: typeof current.name === 'string' && current.name ? current.name : defaults.name,
+      count: Number.isFinite(current.count) ? Math.max(0, Number(current.count)) : defaults.count,
+      lastDownload: current.lastDownload || null,
+      history
+    };
+  }
+
+  return data;
+}
+
+async function loadDownloadsData() {
+  if (redis) {
+    try {
+      const redisData = await redis.get(DOWNLOADS_REDIS_KEY);
+      if (!redisData) {
+        const localData = readLocalDownloadsData();
+        await redis.set(DOWNLOADS_REDIS_KEY, localData);
+        return localData;
+      }
+      return normalizeData(redisData);
+    } catch (error) {
+      console.error('Redis read failed, falling back to local file:', error.message);
+    }
+  }
+
+  return readLocalDownloadsData();
+}
+
+async function saveDownloadsData(data) {
+  const normalizedData = normalizeData(data);
+
+  if (redis) {
+    try {
+      await redis.set(DOWNLOADS_REDIS_KEY, normalizedData);
+      return;
+    } catch (error) {
+      console.error('Redis write failed, falling back to local file:', error.message);
+    }
+  }
+
+  fs.writeFileSync(downloadsFile, JSON.stringify(normalizedData, null, 2));
 }
 
 // Admin password
@@ -45,6 +136,16 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'JacksonU79m!';
 function checkAdmin(req) {
   const password = req.headers['x-admin-password'];
   return password === ADMIN_PASSWORD;
+}
+
+function asyncHandler(handler) {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 function getClientIp(req) {
@@ -91,12 +192,11 @@ function getClientIp(req) {
 }
 
 // Increment download counter (public)
-app.post('/api/download/:software', (req, res) => {
+app.post('/api/download/:software', asyncHandler(async (req, res) => {
   const software = req.params.software;
   const clientIp = getClientIp(req);
-  
-  initializeDownloadsFile();
-  const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+
+  const data = await loadDownloadsData();
   
   if (!data.software[software]) {
     return res.status(404).json({ error: 'Software not found' });
@@ -124,43 +224,39 @@ app.post('/api/download/:software', (req, res) => {
   
   data.software[software].count += 1;
   data.software[software].lastDownload = timestamp;
-  fs.writeFileSync(downloadsFile, JSON.stringify(data, null, 2));
+
+  await saveDownloadsData(data);
   res.json({ success: true });
-});
+}));
 
 // Admin: Get download stats
-app.get('/api/admin/downloads', (req, res) => {
+app.get('/api/admin/downloads', asyncHandler(async (req, res) => {
   if (!checkAdmin(req)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
-  initializeDownloadsFile();
-  const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+
+  const data = await loadDownloadsData();
   res.json(data.software);
-});
+}));
 
 // Admin: Reset counter
-app.post('/api/admin/reset', (req, res) => {
+app.post('/api/admin/reset', asyncHandler(async (req, res) => {
   if (!checkAdmin(req)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
-  fs.writeFileSync(downloadsFile, JSON.stringify({ 
-    software: {
-      multiviewer: { name: 'MultiViewer', count: 0, lastDownload: null },
-      ledlogger: { name: 'LED Logger', count: 0, lastDownload: null }
-    }
-  }, null, 2));
+
+  await saveDownloadsData(createDefaultData());
   res.json({ success: true, message: 'All counters reset' });
-});
+}));
 
 // Admin: Get download history with geolocation
-app.get('/api/admin/history/:software', (req, res) => {
+app.get('/api/admin/history/:software', asyncHandler(async (req, res) => {
   if (!checkAdmin(req)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
   
   const software = req.params.software;
-  initializeDownloadsFile();
-  const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+  const data = await loadDownloadsData();
   
   if (!data.software[software]) {
     return res.status(404).json({ error: 'Software not found' });
@@ -168,10 +264,10 @@ app.get('/api/admin/history/:software', (req, res) => {
   
   const history = data.software[software].history || [];
   res.json(history);
-});
+}));
 
 // Admin: Delete one download history entry
-app.delete('/api/admin/history/:software/:index', (req, res) => {
+app.delete('/api/admin/history/:software/:index', asyncHandler(async (req, res) => {
   if (!checkAdmin(req)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -183,8 +279,7 @@ app.delete('/api/admin/history/:software/:index', (req, res) => {
     return res.status(400).json({ error: 'Invalid index' });
   }
 
-  initializeDownloadsFile();
-  const data = JSON.parse(fs.readFileSync(downloadsFile, 'utf8'));
+  const data = await loadDownloadsData();
 
   if (!data.software[software]) {
     return res.status(404).json({ error: 'Software not found' });
@@ -199,7 +294,7 @@ app.delete('/api/admin/history/:software/:index', (req, res) => {
   }
 
   data.software[software].history.splice(index, 1);
-  data.software[software].count = Math.max(0, data.software[software].history.length);
+  data.software[software].count = Math.max(0, data.software[software].count - 1);
 
   if (data.software[software].history.length === 0) {
     data.software[software].lastDownload = null;
@@ -211,18 +306,27 @@ app.delete('/api/admin/history/:software/:index', (req, res) => {
     data.software[software].lastDownload = latestTimestamp || null;
   }
 
-  fs.writeFileSync(downloadsFile, JSON.stringify(data, null, 2));
+  await saveDownloadsData(data);
   res.json({ success: true, message: 'History entry deleted' });
-});
+}));
 
 // Serve admin page
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
+app.use((error, req, res, next) => {
+  console.error('Unhandled server error:', error);
+  if (res.headersSent) {
+    return next(error);
+  }
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(redis ? 'Persistent store: Upstash Redis' : 'Persistent store: local downloads.json');
   console.log('Press CTRL+C to stop');
 });
 
