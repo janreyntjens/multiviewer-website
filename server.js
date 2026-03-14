@@ -102,16 +102,30 @@ async function loadDownloadsData() {
       const redisData = await redis.get(DOWNLOADS_REDIS_KEY);
       if (!redisData) {
         const localData = readLocalDownloadsData();
-        await redis.set(DOWNLOADS_REDIS_KEY, localData);
+        await redis.set(DOWNLOADS_REDIS_KEY, JSON.stringify(localData));
+        console.log('Redis key missing, seeded from local file');
         return localData;
       }
-      return normalizeData(redisData);
+
+      const parsedRedisData = typeof redisData === 'string'
+        ? JSON.parse(redisData)
+        : redisData;
+
+      const normalizedRedisData = normalizeData(parsedRedisData);
+      console.log(
+        `Loaded downloads from Redis key ${DOWNLOADS_REDIS_KEY}: MV=${normalizedRedisData.software.multiviewer.count}, LED=${normalizedRedisData.software.ledlogger.count}`
+      );
+      return normalizedRedisData;
     } catch (error) {
       console.error('Redis read failed, falling back to local file:', error.message);
     }
   }
 
-  return readLocalDownloadsData();
+  const localData = readLocalDownloadsData();
+  console.log(
+    `Loaded downloads from local file: MV=${localData.software.multiviewer.count}, LED=${localData.software.ledlogger.count}`
+  );
+  return localData;
 }
 
 async function saveDownloadsData(data) {
@@ -119,7 +133,10 @@ async function saveDownloadsData(data) {
 
   if (redis) {
     try {
-      await redis.set(DOWNLOADS_REDIS_KEY, normalizedData);
+      await redis.set(DOWNLOADS_REDIS_KEY, JSON.stringify(normalizedData));
+      console.log(
+        `Saved downloads to Redis key ${DOWNLOADS_REDIS_KEY}: MV=${normalizedData.software.multiviewer.count}, LED=${normalizedData.software.ledlogger.count}`
+      );
       return;
     } catch (error) {
       console.error('Redis write failed, falling back to local file:', error.message);
@@ -127,6 +144,9 @@ async function saveDownloadsData(data) {
   }
 
   fs.writeFileSync(downloadsFile, JSON.stringify(normalizedData, null, 2));
+  console.log(
+    `Saved downloads to local file: MV=${normalizedData.software.multiviewer.count}, LED=${normalizedData.software.ledlogger.count}`
+  );
 }
 
 // Admin password
