@@ -19,6 +19,7 @@ const downloadsFile = path.join(__dirname, 'downloads.json');
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const DOWNLOADS_REDIS_KEY = process.env.DOWNLOADS_REDIS_KEY || 'multiviewer:downloads';
+const DEBUG_REDIS_LOGS = process.env.DEBUG_REDIS_LOGS === 'true';
 
 const redis = REDIS_URL && REDIS_TOKEN
   ? new Redis({
@@ -26,6 +27,12 @@ const redis = REDIS_URL && REDIS_TOKEN
       token: REDIS_TOKEN
     })
   : null;
+
+function logRedis(message) {
+  if (DEBUG_REDIS_LOGS) {
+    console.log(message);
+  }
+}
 
 function createDefaultData() {
   return {
@@ -103,7 +110,7 @@ async function loadDownloadsData() {
       if (!redisData) {
         const localData = readLocalDownloadsData();
         await redis.set(DOWNLOADS_REDIS_KEY, JSON.stringify(localData));
-        console.log('Redis key missing, seeded from local file');
+        logRedis('Redis key missing, seeded from local file');
         return localData;
       }
 
@@ -112,7 +119,7 @@ async function loadDownloadsData() {
         : redisData;
 
       const normalizedRedisData = normalizeData(parsedRedisData);
-      console.log(
+      logRedis(
         `Loaded downloads from Redis key ${DOWNLOADS_REDIS_KEY}: MV=${normalizedRedisData.software.multiviewer.count}, LED=${normalizedRedisData.software.ledlogger.count}`
       );
       return normalizedRedisData;
@@ -122,7 +129,7 @@ async function loadDownloadsData() {
   }
 
   const localData = readLocalDownloadsData();
-  console.log(
+  logRedis(
     `Loaded downloads from local file: MV=${localData.software.multiviewer.count}, LED=${localData.software.ledlogger.count}`
   );
   return localData;
@@ -134,7 +141,7 @@ async function saveDownloadsData(data) {
   if (redis) {
     try {
       await redis.set(DOWNLOADS_REDIS_KEY, JSON.stringify(normalizedData));
-      console.log(
+      logRedis(
         `Saved downloads to Redis key ${DOWNLOADS_REDIS_KEY}: MV=${normalizedData.software.multiviewer.count}, LED=${normalizedData.software.ledlogger.count}`
       );
       return;
@@ -144,7 +151,7 @@ async function saveDownloadsData(data) {
   }
 
   fs.writeFileSync(downloadsFile, JSON.stringify(normalizedData, null, 2));
-  console.log(
+  logRedis(
     `Saved downloads to local file: MV=${normalizedData.software.multiviewer.count}, LED=${normalizedData.software.ledlogger.count}`
   );
 }
@@ -257,6 +264,22 @@ app.get('/api/admin/downloads', asyncHandler(async (req, res) => {
 
   const data = await loadDownloadsData();
   res.json(data.software);
+}));
+
+// Admin: Load dashboard data in one request (stats + history)
+app.get('/api/admin/dashboard', asyncHandler(async (req, res) => {
+  if (!checkAdmin(req)) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  const data = await loadDownloadsData();
+  res.json({
+    software: data.software,
+    history: {
+      multiviewer: data.software.multiviewer.history || [],
+      ledlogger: data.software.ledlogger.history || []
+    }
+  });
 }));
 
 // Admin: Reset counter
