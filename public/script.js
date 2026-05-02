@@ -9,7 +9,7 @@ async function downloadSoftware(softwareId) {
   try {
     // Define download URLs for each software
     const downloadUrls = {
-      'multiviewer': 'https://github.com/janreyntjens/MULTIVIEWER-PRO/releases/download/v1.0.5/MultiViewer_v1.0.5.exe',
+      'multiviewer': '/downloads/MultiViewer_v1.0.5.exe',
       'ledlogger': '#' // Update this later with LED Logger URL
     };
 
