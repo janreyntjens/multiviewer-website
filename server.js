@@ -20,6 +20,7 @@ const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const DOWNLOADS_REDIS_KEY = process.env.DOWNLOADS_REDIS_KEY || 'multiviewer:downloads';
 const DEBUG_REDIS_LOGS = process.env.DEBUG_REDIS_LOGS === 'true';
+const MAX_HISTORY_PER_SOFTWARE = Number.parseInt(process.env.MAX_HISTORY_PER_SOFTWARE || '1000', 10);
 
 const redis = REDIS_URL && REDIS_TOKEN
   ? new Redis({
@@ -244,9 +245,9 @@ app.post('/api/download/:software', asyncHandler(async (req, res) => {
     city: null
   });
   
-  // Keep only last 100 downloads
-  if (data.software[software].history.length > 100) {
-    data.software[software].history = data.software[software].history.slice(-100);
+  // Keep only the most recent history entries to avoid unbounded growth.
+  if (data.software[software].history.length > MAX_HISTORY_PER_SOFTWARE) {
+    data.software[software].history = data.software[software].history.slice(-MAX_HISTORY_PER_SOFTWARE);
   }
   
   data.software[software].count += 1;

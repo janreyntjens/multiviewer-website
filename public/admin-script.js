@@ -1,6 +1,7 @@
 let adminPassword = null;
 const geoCache = {}; // Cache geolocation results
 let dashboardRefreshTimer = null;
+const ADMIN_HISTORY_VISIBLE_LIMIT = 0; // 0 = show all rows
 
 function getSoftwareLabel(softwareKey) {
     return softwareKey === 'multiviewer' ? 'MultiViewer' : 'LED Logger';
@@ -153,9 +154,11 @@ async function renderHistory(historyBySoftware) {
         }))
     );
 
-    // Sort by newest first and keep only the latest 20.
+    // Sort by newest first.
     allDownloads.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    allDownloads = allDownloads.slice(0, 20);
+    if (ADMIN_HISTORY_VISIBLE_LIMIT > 0) {
+        allDownloads = allDownloads.slice(0, ADMIN_HISTORY_VISIBLE_LIMIT);
+    }
 
     if (allDownloads.length === 0) {
         historyBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No downloads yet</td></tr>';
