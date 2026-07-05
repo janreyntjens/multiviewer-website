@@ -8,11 +8,12 @@ const SOFTWARE_CONFIG = {
     readmeLinkElementId: 'multiviewer-readme-link'
   },
   ledlogger: {
-    repo: '',
-    fallbackDownloadUrl: '#',
+    repo: 'janreyntjens/LED-Logger',
+    fallbackDownloadUrl: 'https://github.com/janreyntjens/LED-Logger/releases/latest',
     fallbackReadmeUrl: '#',
     versionElementId: 'ledlogger-version',
-    readmeLinkElementId: ''
+    readmeLinkElementId: '',
+    comingSoonElementId: 'ledlogger-coming-soon'
   }
 };
 
@@ -20,7 +21,10 @@ const releaseCache = {};
 
 // Load dynamic release info on page load
 document.addEventListener('DOMContentLoaded', async () => {
-  await hydrateSoftwareUi('multiviewer');
+  await Promise.all([
+    hydrateSoftwareUi('multiviewer'),
+    hydrateSoftwareUi('ledlogger')
+  ]);
 });
 
 async function fetchLatestRelease(softwareId) {
@@ -91,6 +95,14 @@ async function hydrateSoftwareUi(softwareId) {
     const readmeLinkElement = document.getElementById(software.readmeLinkElementId);
     if (readmeLinkElement) {
       readmeLinkElement.href = getReadmeUrlFromRelease(softwareId, release);
+    }
+  }
+
+  if (software.comingSoonElementId) {
+    const comingSoonElement = document.getElementById(software.comingSoonElementId);
+    if (comingSoonElement) {
+      const hasExeAsset = !!(release && getDownloadUrlFromRelease(softwareId, release) !== '#');
+      comingSoonElement.style.display = hasExeAsset ? 'none' : 'block';
     }
   }
 }
