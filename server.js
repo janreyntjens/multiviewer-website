@@ -21,6 +21,7 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const DOWNLOADS_REDIS_KEY = process.env.DOWNLOADS_REDIS_KEY || 'multiviewer:downloads';
 const DEBUG_REDIS_LOGS = process.env.DEBUG_REDIS_LOGS === 'true';
 const MAX_HISTORY_PER_SOFTWARE = Number.parseInt(process.env.MAX_HISTORY_PER_SOFTWARE || '0', 10);
+const GEOLOOKUP_TIMEOUT_MS = Number.parseInt(process.env.GEOLOOKUP_TIMEOUT_MS || '1500', 10);
 
 const redis = REDIS_URL && REDIS_TOKEN
   ? new Redis({
@@ -219,6 +220,81 @@ function getClientIp(req) {
   return fallbackIp;
 }
 
+function isPrivateOrLocalIp(ip) {
+  if (!ip) {
+    return true;
+  }
+
+  const normalizedIp = ip.toString().trim().toLowerCase();
+  return (
+    normalizedIp === '127.0.0.1' ||
+    normalizedIp === 'localhost' ||
+    normalizedIp === '::1' ||
+    normalizedIp.startsWith('10.') ||
+    /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./.test(normalizedIp) ||
+    normalizedIp.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(normalizedIp) ||
+    normalizedIp.startsWith('169.254.') ||
+    normalizedIp.startsWith('fc') ||
+    normalizedIp.startsWith('fd') ||
+    normalizedIp.startsWith('fe80:')
+  );
+}
+
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'multiviewer-website/1.0'
+      }
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveGeoLocation(ip) {
+  if (isPrivateOrLocalIp(ip)) {
+    return { country: 'Local Network', city: null };
+  }
+
+  try {
+    const primaryResponse = await fetchWithTimeout(`https://ipwho.is/${encodeURIComponent(ip)}`, GEOLOOKUP_TIMEOUT_MS);
+    if (primaryResponse.ok) {
+      const primaryData = await primaryResponse.json();
+      if (primaryData && primaryData.success && primaryData.country) {
+        return {
+          country: primaryData.country,
+          city: primaryData.city || null
+        };
+      }
+    }
+  } catch (error) {
+    logRedis(`Primary geo lookup failed for ${ip}: ${error.message}`);
+  }
+
+  try {
+    const fallbackResponse = await fetchWithTimeout(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, GEOLOOKUP_TIMEOUT_MS);
+    if (fallbackResponse.ok) {
+      const fallbackData = await fallbackResponse.json();
+      if (fallbackData && fallbackData.country_name) {
+        return {
+          country: fallbackData.country_name,
+          city: fallbackData.city || null
+        };
+      }
+    }
+  } catch (error) {
+    logRedis(`Fallback geo lookup failed for ${ip}: ${error.message}`);
+  }
+
+  return { country: null, city: null };
+}
+
 // Increment download counter (public)
 app.post('/api/download/:software', asyncHandler(async (req, res) => {
   const software = req.params.software;
@@ -231,6 +307,7 @@ app.post('/api/download/:software', asyncHandler(async (req, res) => {
   }
   
   const timestamp = new Date().toISOString();
+  const location = await resolveGeoLocation(clientIp);
   
   // Initialize history if doesn't exist
   if (!data.software[software].history) {
@@ -241,8 +318,8 @@ app.post('/api/download/:software', asyncHandler(async (req, res) => {
   data.software[software].history.push({
     ip: clientIp,
     timestamp: timestamp,
-    country: null,
-    city: null
+    country: location.country,
+    city: location.city
   });
   
   // Keep all history by default. Set MAX_HISTORY_PER_SOFTWARE > 0 to enforce a cap.

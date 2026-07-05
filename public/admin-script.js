@@ -168,7 +168,12 @@ async function renderHistory(historyBySoftware) {
     let html = '';
     for (const download of allDownloads) {
         const date = new Date(download.timestamp).toLocaleString('en-US');
-        const location = await getGeoLocation(download.ip);
+        let location = 'Unknown';
+        if (download.country || download.city) {
+            location = `${download.country || 'Unknown'} / ${download.city || 'N/A'}`;
+        } else {
+            location = await getGeoLocation(download.ip);
+        }
 
         html += `
             <tr>
